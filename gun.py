@@ -92,6 +92,9 @@ class Gun:
         self.grow = 0.02
         self.a = 50
         self.b = 25
+        self.vx = 0
+        self.ax = 0
+        self.r = 15
 
     def fire2_start(self, event):
         self.f2_on = 1
@@ -106,7 +109,7 @@ class Gun:
         global balls, bullet
         bullet += 1
         new_ball = Ball(self.screen, self.x + self.a/2 * math.cos(self.teta), self.y + self.a/2 * math.sin(self.teta))
-        new_ball.vx = self.f2_power * math.cos(self.teta)*30
+        new_ball.vx = self.f2_power * math.cos(self.teta)*30+self.vx
         new_ball.vy = - self.f2_power * math.sin(self.teta)*30
         balls.append(new_ball)
         self.f2_power = 0.1
@@ -128,8 +131,28 @@ class Gun:
 
     def update_color(self):
         return (int(255*self.f2_power), 0, 0)
+    
+    def start_boost_r(self):
+        self.ax = 1
+    def end_boost_r(self):
+        self.ax = 0
+    def start_boost_l(self):
+        self.ax = -1
+    def end_boost_l(self):
+        self.ax = 0
+
+    def move(self):
+        self.vx+=self.ax
+        self.x+=self.vx
+        if self.x + self.vx < 3*self.r:
+            self.x = abs(self.x + self.vx) + 0
+            self.vx *= -1
+        elif self.x + self.vx > WIDTH - 3*self.r:
+            self.x =  WIDTH - abs(WIDTH - (self.x + self.vx)) - 0
+            self.vx *= -1
 
     def draw(self):
+        r = self.r
         a = self.a
         b = self.b
         alpha = math.atan(b/a)
@@ -138,6 +161,10 @@ class Gun:
         B = [round(self.x + d * math.cos(self.teta-alpha)), round(self.y + d * math.sin(self.teta-alpha))]
         C = [round(self.x - d * math.cos(self.teta+alpha)), round(self.y - d * math.sin(self.teta+alpha))]
         D = [round(self.x - d * math.cos(self.teta-alpha)), round(self.y - d * math.sin(self.teta-alpha))]
+        pygame.draw.circle(self.screen, (0, 0, 0), [self.x - 2*r, HEIGHT-r], r, 3)
+        pygame.draw.circle(self.screen, (0, 0, 0), [self.x + 2*r, HEIGHT-r], r, 3)
+        pygame.draw.line(self.screen, (0, 0, 0), [self.x - 2*r, HEIGHT-r], [self.x + 2*r, HEIGHT-r], 3)
+        pygame.draw.line(self.screen, (0, 0, 0), [self.x, HEIGHT-r], [self.x, self.y], 3)
         pygame.draw.polygon(self.screen, self.color, 
                    [A, B, 
                      C, D])
@@ -206,6 +233,7 @@ while not finished:
     screen.fill(WHITE)
     gun.draw()
     target.draw()
+    gun.move()
     for b in balls:
         if b.live<=0:
             balls.remove(b)
@@ -223,6 +251,17 @@ while not finished:
             gun.fire2_end(event)
         elif event.type == pygame.MOUSEMOTION:
             gun.targetting(event)
+        elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_LEFT:
+                gun.start_boost_l()
+            elif event.key == pygame.K_RIGHT:
+                gun.start_boost_r()
+        elif event.type == pygame.KEYUP:
+            if event.key == pygame.K_LEFT:
+                gun.end_boost_l()
+            elif event.key == pygame.K_RIGHT:
+                gun.end_boost_r()
+        
 
     for b in balls:
         b.move()
